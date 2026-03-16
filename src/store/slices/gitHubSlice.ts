@@ -1,15 +1,27 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import { GitHubComment, GitHubContent, GitHubContributor, GitHubIssue, GitHubOrganizedComments } from "../../types/gitHub";
+import {
+  GitHubComment,
+  GitHubContent,
+  GitHubContributor,
+  GitHubIssue,
+  GitHubOrganizedComments,
+  GitHubRawIssue,
+} from "../../types/gitHub";
 import api from "../../api/api";
 
 export interface GitHubState {
   contents: GitHubContent[];
   issues: GitHubIssue;
+  allIssues: GitHubRawIssue[];
+  totalOpenIssues: number;
+  readme: string | null;
+  contributing: boolean;
   contributors: GitHubContributor[];
   loading: boolean;
   error: string | null;
   comments: GitHubComment[];
-  organizedComments: GitHubOrganizedComments[]
+  organizedComments: GitHubOrganizedComments[];
 }
 
 const initialState: GitHubState = {
@@ -19,6 +31,10 @@ const initialState: GitHubState = {
     items: [],
     total_count: 0,
   },
+  allIssues: [],
+  totalOpenIssues: 0,
+  readme: null,
+  contributing: false,
   organizedComments: [],
   contributors: [],
   comments: [],
@@ -28,7 +44,7 @@ const initialState: GitHubState = {
 
 interface FetchGitHubIssuesParams {
   repoFullName: string;
-  label: string;
+  label: string[];
 }
 
 interface FetchGitHubCommentsParams {
@@ -45,7 +61,7 @@ export const fetchGitHubContents = createAsyncThunk(
     } catch {
       return rejectWithValue("Falha ao recuperar conteúdo do GitHub.");
     }
-  }
+  },
 );
 
 export const fetchGitHubContributors = createAsyncThunk(
@@ -59,36 +75,117 @@ export const fetchGitHubContributors = createAsyncThunk(
     } catch {
       return rejectWithValue("Falha ao recuperar contribuidores do GitHub.");
     }
-  }
+  },
 );
 
 export const fetchGitHubIssues = createAsyncThunk(
   "gitHub/fetchIssues",
-  async ({ label, repoFullName }: FetchGitHubIssuesParams, { rejectWithValue }) => {
+  async (
+    { label, repoFullName }: FetchGitHubIssuesParams,
+    { rejectWithValue },
+  ) => {
     try {
+      const formattedLabels = label
+        .map((l) => (l.includes(" ") ? `"${l}"` : l))
+        .join(",");
+
+      const query = `repo:${repoFullName} is:issue state:open label:${formattedLabels}`;
+
+      console.log("Search query:", query);
+
       const response = await api.get(`/search/issues`, {
-        params: {
-          q: `repo:${repoFullName} is:issue state:open label:"${label}"`,
-        },
+        params: { q: query },
       });
+
       return response.data as GitHubIssue;
-    } catch {
-      return rejectWithValue("Falha ao recuperar issues do GitHub.");
+    } catch (error: any) {
+      const message = error.response?.data?.message || error.message;
+      console.error("GitHub Search API Error:", message);
+      return rejectWithValue(`Falha ao buscar issues: ${message}`);
     }
-  }
+  },
 );
 
 export const fetchGitHubComments = createAsyncThunk(
   "gitHub/fetchComments",
-  async ({ issueNumber, repoFullName }: FetchGitHubCommentsParams, { rejectWithValue }) => {
+  async (
+    { issueNumber, repoFullName }: FetchGitHubCommentsParams,
+    { rejectWithValue },
+  ) => {
     try {
-      const response = await api.get(`/repos/${repoFullName}/issues/${issueNumber}/comments`);
+      const response = await api.get(
+        `/repos/${repoFullName}/issues/${issueNumber}/comments`,
+      );
       return response.data as GitHubComment[];
     } catch {
-      return rejectWithValue("Falha ao recuperar comentários do GitHub."); 
+      return rejectWithValue("Falha ao recuperar comentários do GitHub.");
     }
-  }
-)
+  },
+);
+
+export const fetchReadme = createAsyncThunk(
+  "gitHub/fetchReadme",
+  async (repoFullName: string) => {
+    try {
+      const response = await api.get(`/repos/${repoFullName}/readme`);
+      console.log(
+        "README response:",
+        atob(response.data.content.replace(/\s/g, "")),
+      );
+      return atob(response.data.content.replace(/\s/g, "")) as string;
+    } catch {
+      return null;
+    }
+  },
+);
+
+export const fetchContributing = createAsyncThunk(
+  "gitHub/fetchContributing",
+  async (repoFullName: string) => {
+    try {
+      await api.get(`/repos/${repoFullName}/contents/CONTRIBUTING.md`);
+      return true;
+    } catch {
+      try {
+        await api.get(`/repos/${repoFullName}/contents/CONTRIBUTING`);
+        return true;
+      } catch {
+        return false;
+      }
+    }
+  },
+);
+
+export const fetchGitHubAllIssues = createAsyncThunk(
+  "gitHub/fetchAllIssues",
+  async (repoFullName: string, { rejectWithValue }) => {
+    try {
+      const response = await api.get(`/repos/${repoFullName}/issues`, {
+        params: { state: "open", per_page: 100 },
+      });
+      return (response.data as any[]).filter(
+        (item) => !item.pull_request,
+      ) as GitHubRawIssue[];
+    } catch {
+      return rejectWithValue("Falha ao recuperar issues.");
+    }
+  },
+);
+
+export const fetchTotalOpenIssues = createAsyncThunk(
+  "gitHub/fetchTotalOpenIssues",
+  async (repoFullName: string, { rejectWithValue }) => {
+    try {
+      const response = await api.get("/search/issues", {
+        params: { q: `repo:${repoFullName} is:issue state:open`, per_page: 1 },
+      });
+      return response.data.total_count as number;
+    } catch (error: any) {
+      const message = error.response?.data?.message || error.message;
+      return rejectWithValue(`Falha ao contar issues: ${message}`);
+    }
+  },
+);
 
 export const gitHubSlice = createSlice({
   name: "gitHub",
@@ -101,6 +198,10 @@ export const gitHubSlice = createSlice({
         items: [],
         total_count: 0,
       };
+      state.allIssues = [];
+      state.totalOpenIssues = 0;
+      state.readme = null;
+      state.contributing = false;
       state.contributors = [];
       state.comments = [];
       state.loading = false;
@@ -115,22 +216,26 @@ export const gitHubSlice = createSlice({
           recordOrganizedById[+idUrl] = [];
         }
         if (recordOrganizedById[+idUrl].length < 2) {
-          const hasEqualUser =recordOrganizedById[+idUrl].find((item) => item.user.login === comment.user.login)
-          console.log(hasEqualUser)
+          const hasEqualUser = recordOrganizedById[+idUrl].find(
+            (item) => item.user.login === comment.user.login,
+          );
+          console.log(hasEqualUser);
           if (!hasEqualUser) {
             recordOrganizedById[+idUrl].push(comment);
           }
         }
       });
-      state.organizedComments = Object.entries(recordOrganizedById).map(([id, comments]) => {
-        return {
-          id: +id,
-          comments
-        }
-      });
-      console.log(state.comments)
-      console.log(state.organizedComments)
-    }
+      state.organizedComments = Object.entries(recordOrganizedById).map(
+        ([id, comments]) => {
+          return {
+            id: +id,
+            comments,
+          };
+        },
+      );
+      console.log(state.comments);
+      console.log(state.organizedComments);
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -188,8 +293,35 @@ export const gitHubSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       });
+
+    builder.addCase(fetchReadme.fulfilled, (state, action) => {
+      state.readme = action.payload;
+    });
+
+    builder.addCase(fetchContributing.fulfilled, (state, action) => {
+      state.contributing = action.payload ?? false;
+    });
+
+    builder
+      .addCase(fetchGitHubAllIssues.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchGitHubAllIssues.fulfilled, (state, action) => {
+        state.loading = false;
+        state.allIssues = action.payload;
+      })
+      .addCase(fetchGitHubAllIssues.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      });
+
+    builder.addCase(fetchTotalOpenIssues.fulfilled, (state, action) => {
+      state.totalOpenIssues = action.payload;
+    });
   },
 });
 
-export const { clearGitHubState, organizeCommentsByIdSection } = gitHubSlice.actions;
+export const { clearGitHubState, organizeCommentsByIdSection } =
+  gitHubSlice.actions;
 export default gitHubSlice.reducer;
