@@ -21,6 +21,7 @@ import {
 } from "../store/slices/analysisSlice";
 import { computeAnalysis } from "../services/metricsCalculator";
 import ScoreDashboard from "../components/ScoreDashboard";
+import repoHoundDog from "../assets/RepoHoundimg.png";
 
 const BEGINNER_LABELS = [
   "good first issue",
@@ -154,15 +155,17 @@ export default function Home() {
 
   return (
     <main
-      className={`row justify-content-center ${analysisResult ? "align-items-start pt-4" : "align-items-center vh-100"}`}
+      className={`row justify-content-center ${analysisResult ? "align-items-start pt-4" : "align-items-center"}`}
     >
       <section className="row justify-content-center align-items-center gap-2">
         <Card
-          shadow="sm"
           padding="lg"
           radius="md"
           className="col-12 col-sm-12 col-md-7 col-lg-7"
         >
+          <div className="d-flex justify-content-center align-items-start">
+            <img src={repoHoundDog} alt="RepoHound" style={{borderRadius: "50%", width: "350px", height: "350px"}}/>
+          </div>
           <h1 className="col-12 text-center">Analise seu repositório GitHub</h1>
           <div className="d-flex col-12 justify-content-center align-items-center gap-2 flex-wrap flex-column">
             <Input
@@ -182,7 +185,11 @@ export default function Home() {
                   <IconX
                     size={size}
                     style={{ cursor: "pointer" }}
-                    onClick={() => dispatch(unsetQuerySearch())}
+                    onClick={() => {
+                      dispatch(unsetQuerySearch())
+                      dispatch(clearGitHubState());
+                      dispatch(clearAnalysisResult());
+                    }}
                   />
                 )
               }
@@ -197,7 +204,7 @@ export default function Home() {
               onClick={handleSearchRepositoryGitHub}
               className="col-12 col-sm-12 col-md-7 col-lg-7"
               radius={"md"}
-              color="teal"
+              color="#002e68"
               loading={loading}
               disabled={loading}
             >
