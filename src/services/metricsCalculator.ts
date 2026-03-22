@@ -28,36 +28,32 @@ function calcDocumentation(
 
   const readmeExists = readme !== null;
   checks.push({ label: "README.md presente", passed: readmeExists });
-  if (readmeExists) score += 20;
+  if (readmeExists) score += 30;
 
   if (readme) {
     const r = readme.toLowerCase();
 
-    const hasInstall = /install|getting started|configuração|instalação/.test(
-      r,
-    );
+    const hasInstall = /install|installation|setup|getting started|quick start|quickstart|configuração|configuracao|instalação|instalacao|como instalar|guia de instalação|guia de instalacao|tutorial|how to install|setup guide|setup instructions|build|run|usage|como usar|primeiros passos|início|inicio/.test(r);
     checks.push({
       label: "README contém instruções de instalação",
       passed: hasInstall,
     });
-    if (hasInstall) score += 15;
+    if (hasInstall) score += 10;
 
-    const hasUsage = /usage|uso|como usar|how to use|exemplos|examples/.test(r);
+    const hasUsage = /usage|uso|como usar|how to use|exemplos|examples|getting started|primeiros passos|quickstart|início rápido|guia rápido|quick guide|utilização|utilization|demonstração|demo|funcionamento|how it works|running|executando|rodando|instalação|installation/i.test(r);
     checks.push({ label: "README contém seção de uso", passed: hasUsage });
-    if (hasUsage) score += 15;
+    if (hasUsage) score += 10;
 
-    const hasContrib = /contribut|contribuição|contribuindo|contributing/.test(
-      r,
-    );
+    const hasContrib = /contribut|contribuição|contribuindo|contributing|como contribuir|how to contribute|pull request|pr guide|desenvolvimento|development|quero contribuir|want to contribute|particip|colabor|ajudar|helping|guidelines|diretrizes|code of conduct|código de conduta/i.test(r);
     checks.push({
       label: "README menciona como contribuir",
       passed: hasContrib,
     });
-    if (hasContrib) score += 10;
+    if (hasContrib) score += 15;
 
     const hasLicense = /licen[cs]/.test(r);
     checks.push({ label: "README menciona licença", passed: hasLicense });
-    if (hasLicense) score += 10;
+    if (hasLicense) score += 5;
   }
 
   checks.push({
@@ -268,7 +264,6 @@ function calcIssueHealth(allIssues: GitHubRawIssue[]): MetricResult {
   else if (labelRate > 0.5) score += 20;
   else if (labelRate > 0.3) score += 10;
 
-  console.log(score)
   return {
     score: Math.min(score, 100),
     weight: 0.2,
