@@ -246,11 +246,11 @@ function calcIssueHealth(allIssues: GitHubRawIssue[]): MetricResult {
   });
   checks.push({
     label: `Mais de 50% das issues têm comentários (atual: ${(commentRate * 100).toFixed(0)}%)`,
-    passed: commentRate >= 0.5,
+    passed: commentRate > 0.5,
   });
   checks.push({
     label: `Mais de 30% das issues têm labels (atual: ${(labelRate * 100).toFixed(0)}%)`,
-    passed: labelRate >= 0.3,
+    passed: labelRate > 0.3,
   });
 
   let score = 0;
@@ -261,13 +261,14 @@ function calcIssueHealth(allIssues: GitHubRawIssue[]): MetricResult {
   else if (avgDaysOpen < 180) score += 10;
 
   if (commentRate >= 0.7) score += 30;
-  else if (commentRate >= 0.5) score += 20;
-  else if (commentRate >= 0.3) score += 10;
+  else if (commentRate > 0.5) score += 20;
+  else if (commentRate > 0.3) score += 10;
 
   if (labelRate >= 0.7) score += 30;
-  else if (labelRate >= 0.5) score += 20;
-  else if (labelRate >= 0.3) score += 10;
+  else if (labelRate > 0.5) score += 20;
+  else if (labelRate > 0.3) score += 10;
 
+  console.log(score)
   return {
     score: Math.min(score, 100),
     weight: 0.2,
