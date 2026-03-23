@@ -54,9 +54,16 @@ interface FetchGitHubCommentsParams {
 
 export const fetchGitHubContents = createAsyncThunk(
   "gitHub/fetchContents",
-  async (repoFullName: string, { rejectWithValue }) => {
+  async (
+    { repoFullName, token }: { repoFullName: string; token: string },
+    { rejectWithValue },
+  ) => {
     try {
-      const response = await api.get(`/repos/${repoFullName}/contents`);
+      const response = await api.get(`/repos/${repoFullName}/contents`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       return response.data as GitHubContent[];
     } catch {
       return rejectWithValue("Falha ao recuperar conteúdo do GitHub.");
@@ -66,10 +73,16 @@ export const fetchGitHubContents = createAsyncThunk(
 
 export const fetchGitHubContributors = createAsyncThunk(
   "gitHub/fetchContributors",
-  async (repoFullName: string, { rejectWithValue }) => {
+  async (
+    { repoFullName, token }: { repoFullName: string; token: string },
+    { rejectWithValue },
+  ) => {
     try {
       const response = await api.get(`/repos/${repoFullName}/contributors`, {
         params: { per_page: 100 },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
       return response.data as GitHubContributor[];
     } catch {
@@ -81,7 +94,7 @@ export const fetchGitHubContributors = createAsyncThunk(
 export const fetchGitHubIssues = createAsyncThunk(
   "gitHub/fetchIssues",
   async (
-    { label, repoFullName }: FetchGitHubIssuesParams,
+    { label, repoFullName, token }: FetchGitHubIssuesParams & { token: string },
     { rejectWithValue },
   ) => {
     try {
@@ -95,6 +108,9 @@ export const fetchGitHubIssues = createAsyncThunk(
 
       const response = await api.get(`/search/issues`, {
         params: { q: query },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       return response.data as GitHubIssue;
@@ -109,12 +125,21 @@ export const fetchGitHubIssues = createAsyncThunk(
 export const fetchGitHubComments = createAsyncThunk(
   "gitHub/fetchComments",
   async (
-    { issueNumber, repoFullName }: FetchGitHubCommentsParams,
+    {
+      issueNumber,
+      repoFullName,
+      token,
+    }: FetchGitHubCommentsParams & { token: string },
     { rejectWithValue },
   ) => {
     try {
       const response = await api.get(
         `/repos/${repoFullName}/issues/${issueNumber}/comments`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
       );
       return response.data as GitHubComment[];
     } catch {
@@ -125,9 +150,13 @@ export const fetchGitHubComments = createAsyncThunk(
 
 export const fetchReadme = createAsyncThunk(
   "gitHub/fetchReadme",
-  async (repoFullName: string) => {
+  async ({ repoFullName, token }: { repoFullName: string; token: string }) => {
     try {
-      const response = await api.get(`/repos/${repoFullName}/readme`);
+      const response = await api.get(`/repos/${repoFullName}/readme`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       console.log(
         "README response:",
         atob(response.data.content.replace(/\s/g, "")),
@@ -141,13 +170,21 @@ export const fetchReadme = createAsyncThunk(
 
 export const fetchContributing = createAsyncThunk(
   "gitHub/fetchContributing",
-  async (repoFullName: string) => {
+  async ({ repoFullName, token }: { repoFullName: string; token: string }) => {
     try {
-      await api.get(`/repos/${repoFullName}/contents/CONTRIBUTING.md`);
+      await api.get(`/repos/${repoFullName}/contents/CONTRIBUTING.md`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       return true;
     } catch {
       try {
-        await api.get(`/repos/${repoFullName}/contents/CONTRIBUTING`);
+        await api.get(`/repos/${repoFullName}/contents/CONTRIBUTING`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         return true;
       } catch {
         return false;
@@ -158,10 +195,16 @@ export const fetchContributing = createAsyncThunk(
 
 export const fetchGitHubAllIssues = createAsyncThunk(
   "gitHub/fetchAllIssues",
-  async (repoFullName: string, { rejectWithValue }) => {
+  async (
+    { repoFullName, token }: { repoFullName: string; token: string },
+    { rejectWithValue },
+  ) => {
     try {
       const response = await api.get(`/repos/${repoFullName}/issues`, {
         params: { state: "open", per_page: 100 },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
       return (response.data as any[]).filter(
         (item) => !item.pull_request,
@@ -174,15 +217,37 @@ export const fetchGitHubAllIssues = createAsyncThunk(
 
 export const fetchTotalOpenIssues = createAsyncThunk(
   "gitHub/fetchTotalOpenIssues",
-  async (repoFullName: string, { rejectWithValue }) => {
+  async (
+    { repoFullName, token }: { repoFullName: string; token: string },
+    { rejectWithValue },
+  ) => {
     try {
       const response = await api.get("/search/issues", {
         params: { q: `repo:${repoFullName} is:issue state:open`, per_page: 1 },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
       return response.data.total_count as number;
     } catch (error: any) {
       const message = error.response?.data?.message || error.message;
       return rejectWithValue(`Falha ao contar issues: ${message}`);
+    }
+  },
+);
+
+export const verifyGitHubToken = createAsyncThunk(
+  "gitHub/verifyToken",
+  async (token: string, { rejectWithValue }) => {
+    try {
+      const response = await api.get("/user", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return response.status === 200;
+    } catch {
+      return rejectWithValue("Token inválido.");
     }
   },
 );

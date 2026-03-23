@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { Button, Card, Input } from "@mantine/core";
 import { useAppDispatch, useAppSelector } from "../store";
 import { IconSearch, IconX } from "@tabler/icons-react";
@@ -14,6 +15,7 @@ import {
   fetchReadme,
   fetchTotalOpenIssues,
   organizeCommentsByIdSection,
+  verifyGitHubToken,
 } from "../store/slices/gitHubSlice";
 import {
   clearAnalysisResult,
@@ -22,6 +24,12 @@ import {
 import { computeAnalysis } from "../services/metricsCalculator";
 import ScoreDashboard from "../components/ScoreDashboard";
 import repoHoundDog from "../assets/RepoHoundimg.png";
+import { useEffect, useState } from "react";
+import {
+  removeTokenGitHub,
+  tokenGitHubFind,
+} from "../store/slices/tokenGitHubSlice";
+import ModalToken from "../components/ModalToken";
 
 const BEGINNER_LABELS = [
   "good first issue",
@@ -43,11 +51,51 @@ export default function Home() {
   const { query } = useAppSelector((state) => state.search);
   const { loading, error } = useAppSelector((state) => state.gitHub);
   const { result: analysisResult } = useAppSelector((state) => state.analysis);
+  const {
+    hasToken,
+    token,
+    loading: tokenLoading,
+  } = useAppSelector((state) => state.tokenGitHub);
   const size = 16;
   const dispatch = useAppDispatch();
   const { handleErrorNotification, handleWarnNotification } = useToast();
+  const [isTokenModalOpen, setIsTokenModalOpen] = useState(false);
+
+  useEffect(() => {
+    dispatch(tokenGitHubFind());
+  }, []);
+
+  useEffect(() => {
+    if (hasToken && token) {
+      verifyToken();
+    }
+  }, [token, hasToken]);
+
+  const verifyToken = async () => {
+    if (hasToken && token !== null) {
+      const result = await dispatch(verifyGitHubToken(token));
+
+      if (result.payload === false) {
+        dispatch(removeTokenGitHub());
+        handleWarnNotification(
+          "Token inválido",
+          (error as string) ||
+            "O token do GitHub fornecido é inválido. Por favor, insira um token válido.",
+        );
+      }
+    }
+  };
 
   const handleSearchRepositoryGitHub = async () => {
+    if (!hasToken || token === null) {
+      handleWarnNotification(
+        "Token GitHub necessário",
+        "Por favor, adicione um token do GitHub para realizar a análise.",
+      );
+      setIsTokenModalOpen(true);
+      return;
+    }
+
     if (query.trim() === "") {
       handleWarnNotification(
         "Campo vazio",
@@ -76,19 +124,30 @@ export default function Home() {
 
     try {
       const [contentsData, readmeData, contributingData] = await Promise.all([
-        dispatch(fetchGitHubContents(fullNamRepo)).unwrap(),
-        dispatch(fetchReadme(fullNamRepo)).unwrap(),
-        dispatch(fetchContributing(fullNamRepo)).unwrap(),
+        dispatch(
+          fetchGitHubContents({ repoFullName: fullNamRepo, token }),
+        ).unwrap(),
+        dispatch(fetchReadme({ repoFullName: fullNamRepo, token })).unwrap(),
+        dispatch(
+          fetchContributing({ repoFullName: fullNamRepo, token }),
+        ).unwrap(),
       ]);
 
       const [allIssuesData, totalOpenData, , taggedData] = await Promise.all([
-        dispatch(fetchGitHubAllIssues(fullNamRepo)).unwrap(),
-        dispatch(fetchTotalOpenIssues(fullNamRepo)).unwrap(),
-        dispatch(fetchGitHubContributors(fullNamRepo)).unwrap(),
+        dispatch(
+          fetchGitHubAllIssues({ repoFullName: fullNamRepo, token }),
+        ).unwrap(),
+        dispatch(
+          fetchTotalOpenIssues({ repoFullName: fullNamRepo, token }),
+        ).unwrap(),
+        dispatch(
+          fetchGitHubContributors({ repoFullName: fullNamRepo, token }),
+        ).unwrap(),
         dispatch(
           fetchGitHubIssues({
             repoFullName: fullNamRepo,
             label: BEGINNER_LABELS,
+            token,
           }),
         ).unwrap(),
       ]);
@@ -102,6 +161,7 @@ export default function Home() {
               fetchGitHubComments({
                 issueNumber: issue.number,
                 repoFullName: fullNamRepo,
+                token,
               }),
             ).unwrap(),
           ),
@@ -164,9 +224,21 @@ export default function Home() {
           className="col-12 col-sm-12 col-md-7 col-lg-7"
         >
           <div className="d-flex justify-content-center align-items-start">
-            <img src={repoHoundDog} alt="RepoHound" style={{borderRadius: "50%", width: "350px", height: "350px"}}/>
+            <img
+              src={repoHoundDog}
+              alt="RepoHound"
+              style={{
+                borderRadius: "50%",
+                maxWidth: "350px",
+                maxHeight: "350px",
+                minWidth: "280px",
+                minHeight: "280px",
+              }}
+            />
           </div>
-          <h1 className="col-12 text-center">Analise seu repositório GitHub</h1>
+          <h1 className="col-12 text-center" style={{ fontWeight: 400 }}>
+            Analise seu repositório GitHub
+          </h1>
           <div className="d-flex col-12 justify-content-center align-items-center gap-2 flex-wrap flex-column">
             <Input
               rightSectionPointerEvents="all"
@@ -175,7 +247,7 @@ export default function Home() {
                 if (e.key === "Enter") handleSearchRepositoryGitHub();
               }}
               rightSection={
-                query.trim() === "" ? (
+                analysisResult === null && query.length > 0 ? (
                   <IconSearch
                     onClick={handleSearchRepositoryGitHub}
                     size={size}
@@ -186,7 +258,7 @@ export default function Home() {
                     size={size}
                     style={{ cursor: "pointer" }}
                     onClick={() => {
-                      dispatch(unsetQuerySearch())
+                      dispatch(unsetQuerySearch());
                       dispatch(clearGitHubState());
                       dispatch(clearAnalysisResult());
                     }}
@@ -200,21 +272,39 @@ export default function Home() {
               value={query}
               placeholder="Insira a URL GitHub: https://github.com/seu/repositorio"
             />
-            <Button
-              onClick={handleSearchRepositoryGitHub}
-              className="col-12 col-sm-12 col-md-7 col-lg-7"
-              radius={"md"}
-              color="#002e68"
-              loading={loading}
-              disabled={loading}
-            >
-              Analisar
-            </Button>
+            {hasToken ? (
+              <Button
+                onClick={handleSearchRepositoryGitHub}
+                className="col-12 col-sm-12 col-md-7 col-lg-7"
+                radius={"md"}
+                color="#002e68"
+                loading={loading}
+                disabled={loading}
+              >
+                Analisar
+              </Button>
+            ) : (
+              <Button
+                className="col-12 col-sm-12 col-md-7 col-lg-7"
+                radius={"md"}
+                disabled={hasToken}
+                loading={tokenLoading}
+                color="#eb670d"
+                onClick={() => setIsTokenModalOpen(true)}
+              >
+                Adicionar Token GitHub
+              </Button>
+            )}
           </div>
         </Card>
       </section>
 
       {analysisResult && <ScoreDashboard result={analysisResult} />}
+
+      <ModalToken
+        isOpen={isTokenModalOpen}
+        onClose={() => setIsTokenModalOpen(false)}
+      />
     </main>
   );
 }

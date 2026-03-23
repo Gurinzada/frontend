@@ -3,12 +3,14 @@ import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
 import searchSlice from "./slices/searchSlice";
 import gitHubSlice from "./slices/gitHubSlice";
 import analysisSlice from "./slices/analysisSlice";
+import tokenGitHubSlice from "./slices/tokenGitHubSlice";
 
 export const store = configureStore({
   reducer: {
     search: searchSlice,
     gitHub: gitHubSlice,
     analysis: analysisSlice,
+    tokenGitHub: tokenGitHubSlice,
   },
 });
 
