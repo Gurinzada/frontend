@@ -1,15 +1,20 @@
-import { Card, Divider } from "@mantine/core";
+import { Card, Divider, Loader } from "@mantine/core";
 import { motion } from "framer-motion";
 import { AnalysisResult } from "../types/analysis";
 import { getScoreColor, getScoreLabel } from "../services/metricsCalculator";
 import ScoreGauge from "./ScoreGauge";
 import MetricCard from "./MetricCard";
+import html2canvas from "html2canvas";
+import jsPdf from "jspdf";
+import { IconDownload } from "@tabler/icons-react";
+import { useState } from "react";
 
 interface ScoreDashboardProps {
   result: AnalysisResult;
 }
 
 export default function ScoreDashboard({ result }: ScoreDashboardProps) {
+  const [isLoadingDownload, setIsLoadingDownload] = useState<boolean>(false);
   const overallColor = getScoreColor(result.overallScore);
   const overallLabel = getScoreLabel(result.overallScore);
 
@@ -20,26 +25,78 @@ export default function ScoreDashboard({ result }: ScoreDashboardProps) {
     result.issueHealth,
   ];
 
+  const handleGeneratePdf = async () => {
+    setIsLoadingDownload(true);
+    const element = document.getElementById("pdf-content");
+    if (!element) return;
+
+    const canvas = await html2canvas(element, {
+      scale: 2.5,
+      useCORS: true,
+      backgroundColor: "#fff",
+    });
+
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPdf({
+      orientation: "portrait",
+      unit: "px",
+      format: "a4",
+    });
+
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+    const [day, month, year] = new Date()
+      .toLocaleDateString("pt-BR")
+      .split("/");
+
+    const marginTop = 40;
+    pdf.setFontSize(12);
+    pdf.text(
+      `RepoHound - Análise de Repositório ${day}/${month}/${year}`,
+      20,
+      30,
+    );
+    pdf.addImage(imgData, "PNG", 0, marginTop, pdfWidth, pdfHeight);
+
+    pdf.save(`${result.repoFullName}_analysis.pdf`);
+    setIsLoadingDownload(false);
+  };
+
   return (
     <motion.section
       initial={{ opacity: 0, y: 40 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
       className="row justify-content-center mt-4 pb-5"
+      id="pdf-content"
     >
       <div className="col-12 col-md-10 col-lg-8 mb-4">
         <Card shadow="sm" padding="xl" radius="md" withBorder>
           <div className="d-flex flex-column align-items-center gap-3">
-            <p
-              className="text-muted mb-0"
-              style={{
-                fontSize: "0.85rem",
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-              }}
-            >
-              {result.repoFullName}
-            </p>
+            <div className="row justify-content-center aling-items-center w-100">
+              <div className="col-4"></div>
+              <p
+                className="text-muted mb-0 col-4 text-center p-0"
+                style={{
+                  fontSize: "0.85rem",
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                }}
+              >
+                {result.repoFullName}
+              </p>
+              <div
+                onClick={handleGeneratePdf}
+                className="col-4 d-flex justify-content-end aling-items-center"
+              >
+                {isLoadingDownload === false ? (
+                  <div className="d-flex downloadButton justify-content-center align-items-center" style={{borderRadius: "50%", width: "35px", height: "35px"}}>
+                  <IconDownload size={20} />
+                </div>
+                ) : <Loader size={20} color="#000"/>}
+              </div>
+            </div>
 
             <ScoreGauge
               score={result.overallScore}
