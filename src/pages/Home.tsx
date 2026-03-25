@@ -45,6 +45,7 @@ const BEGINNER_LABELS = [
   "welcome",
   "easy-fix",
   "quick-fix",
+  "first-timers-only"
 ];
 
 export default function Home() {

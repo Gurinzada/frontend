@@ -237,8 +237,8 @@ function calcIssueHealth(allIssues: GitHubRawIssue[]): MetricResult {
   const labelRate = issuesWithLabels / allIssues.length;
 
   checks.push({
-    label: `Idade média das issues menor que 90 dias (atual: ${avgDaysOpen.toFixed(0)} dias)`,
-    passed: avgDaysOpen < 90,
+    label: `Idade média das issues menor que 180 dias (atual: ${avgDaysOpen.toFixed(0)} dias)`,
+    passed: avgDaysOpen < 180,
   });
   checks.push({
     label: `Mais de 50% das issues têm comentários (atual: ${(commentRate * 100).toFixed(0)}%)`,
@@ -251,10 +251,10 @@ function calcIssueHealth(allIssues: GitHubRawIssue[]): MetricResult {
 
   let score = 0;
 
-  if (avgDaysOpen < 30) score += 40;
-  else if (avgDaysOpen < 60) score += 30;
-  else if (avgDaysOpen < 90) score += 20;
-  else if (avgDaysOpen < 180) score += 10;
+  if (avgDaysOpen < 60) score += 40;
+  else if (avgDaysOpen < 120) score += 30;
+  else if (avgDaysOpen < 180) score += 20;
+  else if (avgDaysOpen < 365) score += 10;
 
   if (commentRate >= 0.7) score += 30;
   else if (commentRate > 0.5) score += 20;
