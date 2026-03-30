@@ -1,8 +1,8 @@
 import { Button, Divider, Modal, TextInput } from "@mantine/core";
 import { useState } from "react";
-import useToast from "../hooks/useToast";
-import { useAppDispatch } from "../store";
-import { insertTokenGitHub } from "../store/slices/tokenGitHubSlice";
+import useToast from "../../hooks/useToast";
+import { useAppDispatch } from "../../store";
+import { insertTokenGitHub } from "../../store/slices/tokenGitHubSlice";
 
 interface ModalTokenProps {
     isOpen: boolean;

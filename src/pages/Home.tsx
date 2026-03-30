@@ -29,7 +29,7 @@ import {
   removeTokenGitHub,
   tokenGitHubFind,
 } from "../store/slices/tokenGitHubSlice";
-import ModalToken from "../components/ModalToken";
+import ModalToken from "../components/Modals/ModalToken";
 
 const BEGINNER_LABELS = [
   "good first issue",
