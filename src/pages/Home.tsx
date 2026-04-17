@@ -45,7 +45,7 @@ const BEGINNER_LABELS = [
   "welcome",
   "easy-fix",
   "quick-fix",
-  "first-timers-only"
+  "first-timers-only",
 ];
 
 export default function Home() {
@@ -241,38 +241,40 @@ export default function Home() {
             Analise seu repositório GitHub
           </h1>
           <div className="d-flex col-12 justify-content-center align-items-center gap-2 flex-wrap flex-column">
-            <Input
-              rightSectionPointerEvents="all"
-              onChange={(e) => dispatch(setQuerySearch(e.target.value))}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleSearchRepositoryGitHub();
-              }}
-              rightSection={
-                analysisResult === null && query.length > 0 ? (
-                  <IconSearch
-                    onClick={handleSearchRepositoryGitHub}
-                    size={size}
-                    style={{ cursor: "pointer" }}
-                  />
-                ) : (
-                  <IconX
-                    size={size}
-                    style={{ cursor: "pointer" }}
-                    onClick={() => {
-                      dispatch(unsetQuerySearch());
-                      dispatch(clearGitHubState());
-                      dispatch(clearAnalysisResult());
-                    }}
-                  />
-                )
-              }
-              type="text"
-              size="md"
-              radius={"md"}
-              className="col-12 col-sm-12 col-md-7 col-lg-7"
-              value={query}
-              placeholder="Insira a URL GitHub: https://github.com/seu/repositorio"
-            />
+            {hasToken && (
+              <Input
+                rightSectionPointerEvents="all"
+                onChange={(e) => dispatch(setQuerySearch(e.target.value))}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSearchRepositoryGitHub();
+                }}
+                rightSection={
+                  analysisResult === null && query.length > 0 ? (
+                    <IconSearch
+                      onClick={handleSearchRepositoryGitHub}
+                      size={size}
+                      style={{ cursor: "pointer" }}
+                    />
+                  ) : (
+                    <IconX
+                      size={size}
+                      style={{ cursor: "pointer" }}
+                      onClick={() => {
+                        dispatch(unsetQuerySearch());
+                        dispatch(clearGitHubState());
+                        dispatch(clearAnalysisResult());
+                      }}
+                    />
+                  )
+                }
+                type="text"
+                size="md"
+                radius={"md"}
+                className="col-12 col-sm-12 col-md-7 col-lg-7"
+                value={query}
+                placeholder="Insira a URL GitHub: https://github.com/seu/repositorio"
+              />
+            )}
             {hasToken ? (
               <Button
                 onClick={handleSearchRepositoryGitHub}
