@@ -62,7 +62,6 @@ export default function Home() {
   const {
     handleErrorNotification,
     handleWarnNotification,
-    handleInfoNotification,
   } = useToast();
   const [isTokenModalOpen, setIsTokenModalOpen] = useState(false);
 
@@ -74,14 +73,8 @@ export default function Home() {
     if (hasToken && token) {
       verifyToken();
     }
-    if (!hasToken) {
-      handleInfoNotification(
-        "Seu token está seguro conosco",
-        "Nossa plataforma armazena seu token somente localmente em seu navegador, garantindo que ele nunca seja compartilhado ou acessado por terceiros. Você tem controle total sobre seu token e pode remover quando desejar.",
-      );
-    }
   }, [token, hasToken]);
-
+  
   const verifyToken = async () => {
     if (hasToken && token !== null) {
       const result = await dispatch(verifyGitHubToken(token));

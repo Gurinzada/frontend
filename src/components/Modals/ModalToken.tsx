@@ -21,14 +21,18 @@ export default function ModalToken({ isOpen, onClose }: ModalTokenProps) {
   const [token, setToken] = useState<string>("");
   const [onHover, setOnHover] = useState<boolean>(false);
   const [onHoverStyles, setOnHoverStyles] = useState<boolean>(false);
-  const { handleWarnNotification, handleSucessNotification } = useToast();
+  const {
+    handleWarnNotification,
+    handleSucessNotification,
+    handleInfoNotification,
+  } = useToast();
   const dispatch = useAppDispatch();
   const handleGitHubTokenSubmit = () => {
     if (token.trim() === "") {
       handleWarnNotification(
         "Campo vazio",
         "Insira um token válido do GitHub para continuar.",
-        true
+        true,
       );
       return;
     }
@@ -39,6 +43,10 @@ export default function ModalToken({ isOpen, onClose }: ModalTokenProps) {
       handleSucessNotification(
         "Token salvo",
         "Seu token do GitHub foi salvo com sucesso.",
+      );
+      handleInfoNotification(
+        "Seu token está seguro conosco",
+        "Nossa plataforma armazena seu token somente localmente em seu navegador, garantindo que ele nunca seja compartilhado ou acessado por terceiros. Você tem controle total sobre seu token e pode remover quando desejar.",
       );
     }, 500);
   };
