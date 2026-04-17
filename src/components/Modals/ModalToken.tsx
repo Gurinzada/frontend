@@ -28,6 +28,7 @@ export default function ModalToken({ isOpen, onClose }: ModalTokenProps) {
       handleWarnNotification(
         "Campo vazio",
         "Insira um token válido do GitHub para continuar.",
+        true
       );
       return;
     }

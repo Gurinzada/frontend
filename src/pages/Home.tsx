@@ -59,7 +59,11 @@ export default function Home() {
   } = useAppSelector((state) => state.tokenGitHub);
   const size = 16;
   const dispatch = useAppDispatch();
-  const { handleErrorNotification, handleWarnNotification } = useToast();
+  const {
+    handleErrorNotification,
+    handleWarnNotification,
+    handleInfoNotification,
+  } = useToast();
   const [isTokenModalOpen, setIsTokenModalOpen] = useState(false);
 
   useEffect(() => {
@@ -72,6 +76,15 @@ export default function Home() {
     }
   }, [token, hasToken]);
 
+  useEffect(() => {
+    if (!hasToken) {
+      handleInfoNotification(
+        "Seu token está seguro conosco",
+        "Nossa plataforma armazena seu token somente localmente em seu navegador, garantindo que ele nunca seja compartilhado ou acessado por terceiros. Você tem controle total sobre seu token e pode remover quando desejar.",
+      );
+    }
+  }, []);
+
   const verifyToken = async () => {
     if (hasToken && token !== null) {
       const result = await dispatch(verifyGitHubToken(token));
@@ -82,6 +95,7 @@ export default function Home() {
           "Token inválido",
           (error as string) ||
             "O token do GitHub fornecido é inválido. Por favor, insira um token válido.",
+            false
         );
       }
     }
@@ -92,6 +106,7 @@ export default function Home() {
       handleWarnNotification(
         "Token GitHub necessário",
         "Por favor, adicione um token do GitHub para realizar a análise.",
+        true
       );
       setIsTokenModalOpen(true);
       return;
@@ -101,6 +116,7 @@ export default function Home() {
       handleWarnNotification(
         "Campo vazio",
         "Por favor, insira a URL do repositório GitHub.",
+        true
       );
       return;
     }
@@ -114,6 +130,7 @@ export default function Home() {
       handleWarnNotification(
         "URL inválida",
         "Por favor, insira uma URL válida do GitHub (ex: https://github.com/owner/repo).",
+        true
       );
       return;
     }

@@ -21,12 +21,12 @@ export default function useToast(){
         })
     };
 
-    const handleWarnNotification = (title: string, message: string) => {
+    const handleWarnNotification = (title: string, message: string, isAutoClose: boolean) => {
         notifications.show({
             title: title,
             message: message,
             color: "yellow",
-            autoClose: 5000,
+            autoClose: isAutoClose ? 5000 : false,
             withCloseButton: true,
         })
     };
